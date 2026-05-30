@@ -9,8 +9,7 @@ import { Dashboard } from "@/components/Dashboard";
 
 type State =
   | { phase: "idle" }
-  | { phase: "loading"; step: string }
-  | { phase: "partial"; result: AnalysisResult }
+  | { phase: "loading" }
   | { phase: "error"; message: string }
   | { phase: "done"; result: AnalysisResult };
 
@@ -18,40 +17,16 @@ export default function Home() {
   const [state, setState] = useState<State>({ phase: "idle" });
 
   const analyze = async (req: AnalysisRequest) => {
-    setState({ phase: "loading", step: "Profiling your architecture…" });
+    setState({ phase: "loading" });
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(req),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data?.error ?? `Request failed (${res.status}).`);
-      }
-      const reader = res.body!.getReader();
-      const decoder = new TextDecoder();
-      let buf = "";
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
-        const lines = buf.split("\n");
-        buf = lines.pop() ?? "";
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          const event = JSON.parse(line) as { type: string; [k: string]: unknown };
-          if (event.type === "profiled") {
-            setState({ phase: "loading", step: "Simulating & analyzing…" });
-          } else if (event.type === "analysed") {
-            setState({ phase: "partial", result: event.partial as AnalysisResult });
-          } else if (event.type === "done") {
-            setState({ phase: "done", result: event.result as AnalysisResult });
-          } else if (event.type === "error") {
-            throw new Error(event.message as string);
-          }
-        }
-      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? `Request failed (${res.status}).`);
+      setState({ phase: "done", result: data as AnalysisResult });
     } catch (err) {
       setState({ phase: "error", message: (err as Error).message });
     }
@@ -60,7 +35,7 @@ export default function Home() {
   return (
     <div className="relative z-10 flex min-h-screen flex-col selection:bg-brand/10">
       <TopNav />
-      <main className="w-full flex-grow px-4 py-4 sm:px-6 sm:py-6 md:px-10 lg:px-16">
+      <main className="w-full flex-grow px-6 py-6 sm:px-10 lg:px-16">
         <div className="grid grid-cols-1 gap-12 xl:grid-cols-[462px_1fr]">
           <aside className="xl:sticky xl:top-[120px] xl:self-start space-y-8">
             <InputPanel onAnalyze={analyze} loading={state.phase === "loading"} />
@@ -68,9 +43,8 @@ export default function Home() {
           </aside>
           <section className="min-w-0">
             {state.phase === "idle" && <EmptyState />}
-            {state.phase === "loading" && <LoadingState step={state.step} />}
+            {state.phase === "loading" && <LoadingState />}
             {state.phase === "error" && <ErrorState message={state.message} onReset={() => setState({ phase: "idle" })} />}
-            {state.phase === "partial" && <Dashboard r={state.result} narrativeLoading />}
             {state.phase === "done" && <Dashboard r={state.result} />}
           </section>
         </div>
@@ -104,21 +78,21 @@ function ThemeToggle() {
 function TopNav() {
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-bg/80 backdrop-blur-xl">
-      <div className="flex h-20 w-full items-center justify-between px-4 sm:px-6 md:px-10 lg:px-16">
+      <div className="flex h-20 w-full items-center justify-between px-6 sm:px-10 lg:px-16">
         <div className="flex items-center gap-4">
-          <div className="group relative flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-2xl border border-border bg-panel shadow-sm transition-all hover:border-brand/40 hover:shadow-brand/5">
+          <div className="group relative flex h-12 w-12 items-center justify-center rounded-2xl border border-border bg-panel shadow-sm transition-all hover:border-brand/40 hover:shadow-brand/5">
             <Gauge size={24} className="text-brand transition-transform group-hover:rotate-12" />
           </div>
           <div className="flex flex-col">
             <span className="font-display text-[22px] font-bold tracking-tight text-fg leading-none font-bold">
               ScaleScope<span className="text-brand">.</span>
             </span>
-            <span className="hidden sm:block text-[10px] font-mono uppercase tracking-[0.25em] text-faint mt-1.5 font-bold">
+            <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-faint mt-1.5 font-bold">
               Architectural Intelligence
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-3 xl:gap-10">
+        <div className="flex items-center gap-10">
           <div className="hidden items-center gap-8 font-mono text-[11px] text-faint xl:flex">
             <span className="flex items-center gap-2.5 font-bold text-muted">
               <span className="h-2 w-2 rounded-full bg-good shadow-[0_0_8px_var(--color-good)]" /> 
@@ -129,7 +103,7 @@ function TopNav() {
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <button className="rounded-xl border border-border bg-panel px-4 sm:px-6 py-2.5 text-xs font-bold text-fg shadow-sm transition-all hover:border-brand/40 hover:bg-bg hover:shadow-md active:scale-[0.97]">
+            <button className="rounded-xl border border-border bg-panel px-6 py-2.5 text-xs font-bold text-fg shadow-sm transition-all hover:border-brand/40 hover:bg-bg hover:shadow-md active:scale-[0.97]">
               Configuration
             </button>
           </div>
@@ -179,18 +153,18 @@ function EmptyState() {
     ["Scaling plan", "Autoscaling floors & ceilings per tier."],
   ];
   return (
-    <div className="flex h-full min-h-[500px] flex-col justify-center rounded-2xl border border-border bg-panel/30 p-5 sm:p-12 animate-in">
+    <div className="flex h-full min-h-[500px] flex-col justify-center rounded-2xl border border-border bg-panel/30 p-10 sm:p-14 animate-in">
       <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-brand/30 bg-brand/5 text-brand shadow-[0_0_20px_rgba(230,169,60,0.1)]">
         <Sparkles size={28} />
       </div>
       <div className="eyebrow mt-8 lowercase opacity-70">Capacity & cost planning</div>
-      <h2 className="mt-2.5 max-w-xl font-display text-2xl sm:text-4xl font-bold leading-tight tracking-tight text-fg transition-all">
+      <h2 className="mt-2.5 max-w-xl font-display text-4xl font-bold leading-tight tracking-tight text-fg transition-all">
         Know how it scales, breaks, and <span className="text-brand">bills</span> — before you ship.
       </h2>
       <p className="mt-4 max-w-lg text-md leading-relaxed text-muted font-medium">
         Input your system architecture, set your traffic targets, and let our engine simulate the results in real-time.
       </p>
-      <div className="mt-10 grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-10 grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
         {features.map(([t, d]) => (
           <div key={t} className="group rounded-xl border border-border bg-bg-soft/40 p-4 transition-all hover:border-border-strong hover:bg-bg-soft/60">
             <div className="text-sm font-semibold text-fg group-hover:text-brand transition-colors">{t}</div>
@@ -202,7 +176,7 @@ function EmptyState() {
   );
 }
 
-function LoadingState({ step }: { step: string }) {
+function LoadingState() {
   return (
     <div className="flex min-h-[500px] flex-col items-center justify-center rounded-2xl border border-border bg-panel/20 p-12 text-center overflow-hidden relative">
       <div className="absolute inset-0 bg-gradient-to-b from-brand/5 to-transparent pointer-events-none" />
@@ -211,7 +185,7 @@ function LoadingState({ step }: { step: string }) {
         <Loader2 size={48} className="animate-spin text-brand relative z-10" strokeWidth={1.5} />
       </div>
       <div className="font-mono text-xs text-brand mb-2 animate-pulse uppercase tracking-[0.2em]">Processing Request</div>
-      <h3 className="font-display text-2xl font-semibold text-fg">{step}</h3>
+      <h3 className="font-display text-2xl font-semibold text-fg">Running Simulation</h3>
       <div className="mt-6 flex gap-1.5 justify-center">
         {[0, 1, 2].map((i) => (
           <div key={i} className="h-1.5 w-1.5 rounded-full bg-brand/40 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
@@ -255,7 +229,7 @@ const PHASES = [
 
 function Footer() {
   return (
-    <footer className="border-t border-border/40 py-8 sm:py-12 px-4 sm:px-6 md:px-10 lg:px-16">
+    <footer className="border-t border-border/40 py-12 px-6 sm:px-10 lg:px-16">
       <div className="flex flex-col items-center justify-between gap-8 sm:flex-row">
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-2">

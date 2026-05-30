@@ -187,7 +187,7 @@ export function InputPanel({
               description="Defines how request volume fluctuates over a cycle."
             />
           </p>
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+          <div className="grid grid-cols-4 gap-2.5">
             {SHAPES.map((s) => (
               <Tooltip key={s.id} title={s.label} description={s.description} example={s.example} align="center">
                 <button
@@ -326,7 +326,7 @@ function AvailabilityPicker({ value, onChange }: { value: number; onChange: (v: 
           align="right"
         />
         {hint && (
-          <span className="hidden sm:block max-w-[120px] text-right font-mono text-[9px] text-brand font-bold uppercase tracking-tight leading-tight">
+          <span className="max-w-[120px] text-right font-mono text-[9px] text-brand font-bold uppercase tracking-tight leading-tight">
             {hint}
           </span>
         )}

@@ -17,7 +17,6 @@ import {
   Gauge,
   HelpCircle,
   Layers,
-  Loader2,
   Network,
   ShieldAlert,
   Sparkles,
@@ -71,7 +70,7 @@ function getVerdict(r: AnalysisResult): { ok: boolean; warn: boolean; text: stri
 /* ── Tab IDs ── */
 type Tab = "performance" | "cost" | "reliability" | "readiness" | "infra";
 
-export function Dashboard({ r, narrativeLoading = false }: { r: AnalysisResult; narrativeLoading?: boolean }) {
+export function Dashboard({ r }: { r: AnalysisResult }) {
   const [tab, setTab] = useState<Tab>("performance");
   const bottleneck = r.model.components.find((c) => c.id === r.capacity.bottleneckId);
   const cheapest = r.cost.clouds.find((c) => c.cloud === r.cost.cheapest)!;
@@ -105,7 +104,7 @@ export function Dashboard({ r, narrativeLoading = false }: { r: AnalysisResult; 
         <div className="flex flex-col gap-6 px-6 py-8 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <div className="flex items-center gap-3.5 flex-wrap">
-              <h2 className="metric text-2xl sm:text-3xl font-black text-fg">{r.model.name}</h2>
+              <h2 className="metric text-3xl font-black text-fg">{r.model.name}</h2>
               <Badge color={r.llmProfiled ? "var(--color-brand)" : "var(--color-faint)"} subtle={false} className="px-3 py-1">
                 {r.llmProfiled ? <><Sparkles size={12} /> Pro Model</> : "standard model"}
               </Badge>
@@ -156,7 +155,7 @@ export function Dashboard({ r, narrativeLoading = false }: { r: AnalysisResult; 
       </Card>
 
       {/* ── Tab nav ── */}
-      <div className="flex border-b border-border/80 sticky top-[80px] z-30 bg-bg/80 backdrop-blur-md overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex items-center gap-2 border-b border-border/80 sticky top-[80px] z-30 bg-bg/80 backdrop-blur-md px-1">
         {([
           ["performance", "Latency & Load", <TrendingUp key="p" size={16} />],
           ["cost", "Cloud Economics", <DollarSign key="c" size={16} />],
@@ -167,14 +166,14 @@ export function Dashboard({ r, narrativeLoading = false }: { r: AnalysisResult; 
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`relative flex shrink-0 items-center gap-2 sm:gap-3 px-3 sm:px-6 py-4 sm:py-5 text-[9px] sm:text-[11px] font-bold uppercase tracking-[0.1em] sm:tracking-[0.15em] whitespace-nowrap transition-all group ${
+            className={`relative flex items-center gap-3 px-6 py-5 text-[11px] font-bold uppercase tracking-[0.15em] transition-all group ${
               tab === t
                 ? "text-brand"
                 : "text-faint hover:text-fg"
             }`}
           >
-            <span className="relative z-10 flex items-center gap-1.5 sm:gap-3">
-              <span className="hidden sm:inline-flex">{icon}</span>
+            <span className="relative z-10 flex items-center gap-3">
+              {icon}
               {label}
             </span>
             {tab === t && (
@@ -193,10 +192,10 @@ export function Dashboard({ r, narrativeLoading = false }: { r: AnalysisResult; 
         key={tab}
         initial={{ opacity: 0, x: 8 }}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] as const }}
+        transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
         className="min-h-[400px]"
       >
-        {tab === "performance" && <PerformanceTab r={r} bottleneckName={bottleneck?.name ?? r.capacity.bottleneckId} narrativeLoading={narrativeLoading} />}
+        {tab === "performance" && <PerformanceTab r={r} bottleneckName={bottleneck?.name ?? r.capacity.bottleneckId} />}
         {tab === "cost" && <CostTab r={r} />}
         {tab === "reliability" && <ReliabilityTab r={r} />}
         {tab === "readiness" && <ReadinessTab r={r} />}
@@ -220,12 +219,12 @@ function HeroStat({
   color: string;
 }) {
   return (
-    <div className="bg-panel px-4 py-4 sm:px-6 sm:py-6 transition-colors relative group">
+    <div className="bg-panel px-6 py-6 transition-colors relative group">
       <div className="flex items-center gap-3 font-bold text-[10px] uppercase tracking-[0.2em] text-faint">
         <span className="transition-transform group-hover:scale-110 group-hover:rotate-3" style={{ color }}>{icon}</span>
         {label}
       </div>
-      <div className="metric mt-2 sm:mt-3 text-xl sm:text-3xl font-black tracking-tight" style={{ color }}>{value}</div>
+      <div className="metric mt-3 text-3xl font-black tracking-tight" style={{ color }}>{value}</div>
       <div className="mt-1.5 text-[11.5px] font-bold text-muted/60 tracking-tight">{sub}</div>
       <div className="absolute inset-x-0 bottom-0 h-1 bg-current opacity-0 group-hover:opacity-[0.03] transition-opacity" style={{ color }} />
     </div>
@@ -245,7 +244,7 @@ function ScoreRing({ score, grade }: { score: number; grade: string }) {
           <motion.circle
             initial={{ strokeDashoffset: C }}
             animate={{ strokeDashoffset: off }}
-            transition={{ duration: 1.5, ease: [0.2, 0.8, 0.2, 1] as const, delay: 0.2 }}
+            transition={{ duration: 1.5, ease: [0.2, 0.8, 0.2, 1], delay: 0.2 }}
             cx="42" cy="42" r={R} fill="none" stroke={color}
             strokeWidth="8" strokeLinecap="round"
             strokeDasharray={C}
@@ -269,7 +268,7 @@ function ScoreRing({ score, grade }: { score: number; grade: string }) {
    PERFORMANCE tab
    ────────────────────────────────────────────── */
 
-function PerformanceTab({ r, bottleneckName, narrativeLoading }: { r: AnalysisResult; bottleneckName: string; narrativeLoading?: boolean }) {
+function PerformanceTab({ r, bottleneckName }: { r: AnalysisResult; bottleneckName: string }) {
   return (
     <div className="space-y-6">
       <Card>
@@ -303,7 +302,7 @@ function PerformanceTab({ r, bottleneckName, narrativeLoading }: { r: AnalysisRe
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Left: waterfall chart */}
         <div>
 
@@ -335,18 +334,11 @@ function PerformanceTab({ r, bottleneckName, narrativeLoading }: { r: AnalysisRe
         <CardHeader
           icon={<Sparkles size={15} />}
           title="What the analysis found"
-          subtitle={narrativeLoading ? "AI is writing the report…" : r.llmNarrated ? "Written by AI based on your system" : "Generated from the simulation data"}
+          subtitle={r.llmNarrated ? "Written by AI based on your system" : "Generated from the simulation data"}
         />
-        {narrativeLoading ? (
-          <div className="flex items-center gap-3 px-6 py-10 text-sm text-muted">
-            <Loader2 size={15} className="animate-spin text-brand shrink-0" />
-            Writing analysis report…
-          </div>
-        ) : (
-          <div className="prose-narrative max-h-96 overflow-y-auto scroll-thin px-6 py-4">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{r.narrative}</ReactMarkdown>
-          </div>
-        )}
+        <div className="prose-narrative max-h-96 overflow-y-auto scroll-thin px-6 py-4">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{r.narrative}</ReactMarkdown>
+        </div>
       </Card>
     </div>
   );
@@ -359,10 +351,10 @@ function TierRows({ stations, bottleneckId }: { stations: StationLoad[]; bottlen
   return (
     <div className="divide-y divide-border/40">
       {/* header */}
-      <div className="grid grid-cols-9 sm:grid-cols-12 gap-4 px-4 sm:px-6 py-3 font-mono text-[9px] uppercase tracking-[0.15em] text-muted/60 bg-bg-soft/30">
+      <div className="grid grid-cols-12 gap-4 px-6 py-3 font-mono text-[9px] uppercase tracking-[0.15em] text-muted/60 bg-bg-soft/30">
         <div className="col-span-5">Component</div>
         <div className="col-span-4">Capacity</div>
-        <div className="col-span-3 text-right hidden sm:block">Instances</div>
+        <div className="col-span-3 text-right">Instances</div>
       </div>
       <div className="flex flex-col">
         {shown.map((s, idx) => (
@@ -371,7 +363,7 @@ function TierRows({ stations, bottleneckId }: { stations: StationLoad[]; bottlen
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.05 }}
-            className="grid grid-cols-9 sm:grid-cols-12 items-center gap-4 px-4 sm:px-6 py-4 sm:py-5 hover:bg-bg-soft/40 transition-colors group border-border/40"
+            className="grid grid-cols-12 items-center gap-4 px-6 py-5 hover:bg-bg-soft/40 transition-colors group border-border/40"
           >
             <div className="col-span-5 flex items-center gap-3 min-w-0">
               <div className="h-2.5 w-2.5 rounded-full bg-faint/40" />
@@ -400,7 +392,7 @@ function TierRows({ stations, bottleneckId }: { stations: StationLoad[]; bottlen
                 />
               </div>
             </div>
-            <div className="col-span-3 text-right font-mono text-xs font-medium text-fg hidden sm:block">
+            <div className="col-span-3 text-right font-mono text-xs font-medium text-fg">
               <span>{s.instances}</span><span className="text-muted/50 mx-1">→</span><span>{s.requiredInstances}</span>
             </div>
           </motion.div>
@@ -563,7 +555,7 @@ function CloudBreakdown({ c, max, cheapest }: { c: CloudCost; cheapest: boolean;
 function ReliabilityTab({ r }: { r: AnalysisResult }) {
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* SLO check */}
         <Card>
           <CardHeader
@@ -745,7 +737,7 @@ function ReadinessTab({ r }: { r: AnalysisResult }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-[260px_1fr]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
         {/* Score ring */}
         <Card className="flex flex-col items-center justify-center gap-6 p-8 text-center">
           <div className="relative h-[140px] w-[140px]">
@@ -853,7 +845,7 @@ function InfraTab({ r }: { r: AnalysisResult }) {
   };
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_300px]">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_340px]">
       {/* IaC viewer */}
       <Card>
         <CardHeader
