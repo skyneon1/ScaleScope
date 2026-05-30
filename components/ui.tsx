@@ -12,26 +12,25 @@ export function Card({
   glow?: boolean;
   noAnimate?: boolean;
 }) {
-  const Component = noAnimate ? "div" : motion.div;
-  const animationProps = noAnimate
-    ? {}
-    : {
-        initial: { opacity: 0, y: 10 },
-        animate: { opacity: 1, y: 0 },
-        transition: { duration: 0.5, ease: [0.2, 0.8, 0.2, 1] },
-      };
+  const cls = `relative overflow-hidden rounded-2xl border bg-panel transition-shadow duration-500 ${
+    glow
+      ? "border-brand/40 shadow-[0_10px_40px_-15px_rgba(196,140,52,0.15)]"
+      : "border-border shadow-sm hover:shadow-md"
+  } ${className}`;
+
+  if (noAnimate) {
+    return <div className={cls}>{children}</div>;
+  }
 
   return (
-    <Component
-      {...animationProps}
-      className={`relative overflow-hidden rounded-2xl border bg-panel transition-shadow duration-500 ${
-        glow
-          ? "border-brand/40 shadow-[0_10px_40px_-15px_rgba(196,140,52,0.15)]"
-          : "border-border shadow-sm hover:shadow-md"
-      } ${className}`}
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.2, 0.8, 0.2, 1] as const }}
+      className={cls}
     >
       {children}
-    </Component>
+    </motion.div>
   );
 }
 
@@ -162,7 +161,7 @@ export function Bar({
       <motion.div
         initial={{ width: 0 }}
         animate={{ width: `${pct}%` }}
-        transition={{ duration: 1, ease: [0.2, 0.8, 0.2, 1] }}
+        transition={{ duration: 1, ease: [0.2, 0.8, 0.2, 1] as const }}
         className="h-full rounded-full"
         style={{ 
           backgroundColor: color,
