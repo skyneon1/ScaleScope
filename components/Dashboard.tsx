@@ -193,7 +193,7 @@ export function Dashboard({ r, narrativeLoading = false }: { r: AnalysisResult; 
         key={tab}
         initial={{ opacity: 0, x: 8 }}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
+        transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] as const }}
         className="min-h-[400px]"
       >
         {tab === "performance" && <PerformanceTab r={r} bottleneckName={bottleneck?.name ?? r.capacity.bottleneckId} narrativeLoading={narrativeLoading} />}
@@ -245,7 +245,7 @@ function ScoreRing({ score, grade }: { score: number; grade: string }) {
           <motion.circle
             initial={{ strokeDashoffset: C }}
             animate={{ strokeDashoffset: off }}
-            transition={{ duration: 1.5, ease: [0.2, 0.8, 0.2, 1], delay: 0.2 }}
+            transition={{ duration: 1.5, ease: [0.2, 0.8, 0.2, 1] as const, delay: 0.2 }}
             cx="42" cy="42" r={R} fill="none" stroke={color}
             strokeWidth="8" strokeLinecap="round"
             strokeDasharray={C}
