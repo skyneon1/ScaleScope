@@ -18,8 +18,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Sync state with DOM on mount
     const stored = localStorage.getItem("theme") as Theme | null;
-    const system = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-    const current = stored || system;
+    const current = stored || "light";
     
     setTheme(current);
     document.documentElement.setAttribute("data-theme", current);
