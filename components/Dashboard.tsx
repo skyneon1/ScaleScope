@@ -17,6 +17,7 @@ import {
   Gauge,
   HelpCircle,
   Layers,
+  Loader2,
   Network,
   ShieldAlert,
   Sparkles,
@@ -70,7 +71,7 @@ function getVerdict(r: AnalysisResult): { ok: boolean; warn: boolean; text: stri
 /* ── Tab IDs ── */
 type Tab = "performance" | "cost" | "reliability" | "readiness" | "infra";
 
-export function Dashboard({ r }: { r: AnalysisResult }) {
+export function Dashboard({ r, narrativeLoading = false }: { r: AnalysisResult; narrativeLoading?: boolean }) {
   const [tab, setTab] = useState<Tab>("performance");
   const bottleneck = r.model.components.find((c) => c.id === r.capacity.bottleneckId);
   const cheapest = r.cost.clouds.find((c) => c.cloud === r.cost.cheapest)!;
@@ -192,10 +193,10 @@ export function Dashboard({ r }: { r: AnalysisResult }) {
         key={tab}
         initial={{ opacity: 0, x: 8 }}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
+        transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] as const }}
         className="min-h-[400px]"
       >
-        {tab === "performance" && <PerformanceTab r={r} bottleneckName={bottleneck?.name ?? r.capacity.bottleneckId} />}
+        {tab === "performance" && <PerformanceTab r={r} bottleneckName={bottleneck?.name ?? r.capacity.bottleneckId} narrativeLoading={narrativeLoading} />}
         {tab === "cost" && <CostTab r={r} />}
         {tab === "reliability" && <ReliabilityTab r={r} />}
         {tab === "readiness" && <ReadinessTab r={r} />}
@@ -244,7 +245,7 @@ function ScoreRing({ score, grade }: { score: number; grade: string }) {
           <motion.circle
             initial={{ strokeDashoffset: C }}
             animate={{ strokeDashoffset: off }}
-            transition={{ duration: 1.5, ease: [0.2, 0.8, 0.2, 1], delay: 0.2 }}
+            transition={{ duration: 1.5, ease: [0.2, 0.8, 0.2, 1] as const, delay: 0.2 }}
             cx="42" cy="42" r={R} fill="none" stroke={color}
             strokeWidth="8" strokeLinecap="round"
             strokeDasharray={C}
@@ -268,7 +269,7 @@ function ScoreRing({ score, grade }: { score: number; grade: string }) {
    PERFORMANCE tab
    ────────────────────────────────────────────── */
 
-function PerformanceTab({ r, bottleneckName }: { r: AnalysisResult; bottleneckName: string }) {
+function PerformanceTab({ r, bottleneckName, narrativeLoading }: { r: AnalysisResult; bottleneckName: string; narrativeLoading?: boolean }) {
   return (
     <div className="space-y-6">
       <Card>
@@ -334,11 +335,18 @@ function PerformanceTab({ r, bottleneckName }: { r: AnalysisResult; bottleneckNa
         <CardHeader
           icon={<Sparkles size={15} />}
           title="What the analysis found"
-          subtitle={r.llmNarrated ? "Written by AI based on your system" : "Generated from the simulation data"}
+          subtitle={narrativeLoading ? "AI is writing the report…" : r.llmNarrated ? "Written by AI based on your system" : "Generated from the simulation data"}
         />
-        <div className="prose-narrative max-h-96 overflow-y-auto scroll-thin px-6 py-4">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{r.narrative}</ReactMarkdown>
-        </div>
+        {narrativeLoading ? (
+          <div className="flex items-center gap-3 px-6 py-10 text-sm text-muted">
+            <Loader2 size={15} className="animate-spin text-brand shrink-0" />
+            Writing analysis report…
+          </div>
+        ) : (
+          <div className="prose-narrative max-h-96 overflow-y-auto scroll-thin px-6 py-4">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{r.narrative}</ReactMarkdown>
+          </div>
+        )}
       </Card>
     </div>
   );

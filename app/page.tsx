@@ -9,7 +9,8 @@ import { Dashboard } from "@/components/Dashboard";
 
 type State =
   | { phase: "idle" }
-  | { phase: "loading" }
+  | { phase: "loading"; step: string }
+  | { phase: "partial"; result: AnalysisResult }
   | { phase: "error"; message: string }
   | { phase: "done"; result: AnalysisResult };
 
@@ -17,16 +18,40 @@ export default function Home() {
   const [state, setState] = useState<State>({ phase: "idle" });
 
   const analyze = async (req: AnalysisRequest) => {
-    setState({ phase: "loading" });
+    setState({ phase: "loading", step: "Profiling your architecture…" });
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(req),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? `Request failed (${res.status}).`);
-      setState({ phase: "done", result: data as AnalysisResult });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data?.error ?? `Request failed (${res.status}).`);
+      }
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split("\n");
+        buf = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          const event = JSON.parse(line) as { type: string; [k: string]: unknown };
+          if (event.type === "profiled") {
+            setState({ phase: "loading", step: "Simulating & analyzing…" });
+          } else if (event.type === "analysed") {
+            setState({ phase: "partial", result: event.partial as AnalysisResult });
+          } else if (event.type === "done") {
+            setState({ phase: "done", result: event.result as AnalysisResult });
+          } else if (event.type === "error") {
+            throw new Error(event.message as string);
+          }
+        }
+      }
     } catch (err) {
       setState({ phase: "error", message: (err as Error).message });
     }
@@ -43,8 +68,9 @@ export default function Home() {
           </aside>
           <section className="min-w-0">
             {state.phase === "idle" && <EmptyState />}
-            {state.phase === "loading" && <LoadingState />}
+            {state.phase === "loading" && <LoadingState step={state.step} />}
             {state.phase === "error" && <ErrorState message={state.message} onReset={() => setState({ phase: "idle" })} />}
+            {state.phase === "partial" && <Dashboard r={state.result} narrativeLoading />}
             {state.phase === "done" && <Dashboard r={state.result} />}
           </section>
         </div>
@@ -176,7 +202,7 @@ function EmptyState() {
   );
 }
 
-function LoadingState() {
+function LoadingState({ step }: { step: string }) {
   return (
     <div className="flex min-h-[500px] flex-col items-center justify-center rounded-2xl border border-border bg-panel/20 p-12 text-center overflow-hidden relative">
       <div className="absolute inset-0 bg-gradient-to-b from-brand/5 to-transparent pointer-events-none" />
@@ -185,7 +211,7 @@ function LoadingState() {
         <Loader2 size={48} className="animate-spin text-brand relative z-10" strokeWidth={1.5} />
       </div>
       <div className="font-mono text-xs text-brand mb-2 animate-pulse uppercase tracking-[0.2em]">Processing Request</div>
-      <h3 className="font-display text-2xl font-semibold text-fg">Running Simulation</h3>
+      <h3 className="font-display text-2xl font-semibold text-fg">{step}</h3>
       <div className="mt-6 flex gap-1.5 justify-center">
         {[0, 1, 2].map((i) => (
           <div key={i} className="h-1.5 w-1.5 rounded-full bg-brand/40 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
